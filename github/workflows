@@ -1,0 +1,25 @@
+name: extract-zip
+on:
+  push:
+    paths: ['uploads/*.zip']
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          cd uploads
+          unzip -o *.zip -d ../extracted
+          rm -rf ../extracted/__MACOSX
+          mv ../extracted/* .
+          rm -rf ../extracted
+          rm *.zip
+          cd ..
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "Extracted zip contents"
+          git push   
