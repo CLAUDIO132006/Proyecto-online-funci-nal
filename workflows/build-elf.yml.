@@ -1,0 +1,38 @@
+name: Build PS2 ELF
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/ps2dev/ps2dev:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check generated assets exist
+        run: |
+          for f in ps2/generated/world.bin ps2/generated/fidelity.h ps2/src/main.c; do
+            test -f "$f" || { echo "::error::Missing $f (commit the ps2/generated folder)"; exit 1; }
+          done
+
+      - name: Build ELF
+        run: |
+          export PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
+          export PS2SDK="${PS2SDK:-$PS2DEV/ps2sdk}"
+          export GSKIT="${GSKIT:-$PS2DEV/gsKit}"
+          cd ps2
+          make clean
+          make
+          mkdir -p ../dist
+          cp build/SLENDY.ELF ../dist/SLENDY.ELF
+          "$PS2DEV/ee/bin/mips64r5900el-ps2-elf-strip" ../dist/SLENDY.ELF || true
+
+      - name: Upload ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: SLENDY-ELF
+          path: dist/SLENDY.ELF
